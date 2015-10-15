@@ -19,6 +19,8 @@
 #include <ks/gl/KsGLImplementation.hpp>
 #include <ks/shared/KsImage.hpp>
 
+#include <algorithm>
+
 namespace ks
 {
     namespace gl
@@ -151,20 +153,20 @@ namespace ks
 
         void Texture2D::GLSync()
         {
-            // Find the last update where reupload==true
-            for(auto it = m_list_updates.end();
-                it != m_list_updates.begin();)
-            {
-                --it;
+            if(m_list_updates.empty()) {
+                return;
+            }
 
-                if(it->dst_reupload)
+            for(Update& update : m_list_updates)
+            {
+                if((update.options & Update::ReUpload) == Update::ReUpload)
                 {
-                    if(!it->src_null)
+                    if(update.src_data)
                     {
-                        assert(m_width == it->src_data->width);
-                        assert(m_height == it->src_data->height);
-                        assert(0 == it->src_offset.x);
-                        assert(0 == it->src_offset.y);
+                        assert(m_width == update.src_data->width);
+                        assert(m_height == update.src_data->height);
+                        assert(0 == update.src_offset.x);
+                        assert(0 == update.src_offset.y);
 
                         glTexImage2D(GL_TEXTURE_2D,
                                      0, // mipmap level
@@ -174,7 +176,7 @@ namespace ks
                                      0, // border, not used for GLES
                                      m_gl_format,
                                      m_gl_datatype,
-                                     it->src_data->data_ptr);
+                                     update.src_data->data_ptr);
                     }
                     else
                     {
@@ -192,6 +194,7 @@ namespace ks
                                      m_gl_datatype,
                                      0); // data
                     }
+
                     KS_CHECK_GL_ERROR(m_log_prefix+"upload texture");
 
                     // set filter
@@ -215,27 +218,25 @@ namespace ks
                                     static_cast<GLint>(m_wrap_t));
 
                     KS_CHECK_GL_ERROR(m_log_prefix+"texture wrap params");
-
-                    m_list_updates.erase(m_list_updates.begin(),
-                                         std::next(it));
-                    break;
                 }
-            }
+                else
+                {
+                    glTexSubImage2D(GL_TEXTURE_2D,
+                                    0, // mipmap level
+                                    update.src_offset.x,
+                                    update.src_offset.y,
+                                    update.src_data->width,
+                                    update.src_data->height,
+                                    m_gl_format,
+                                    m_gl_datatype,
+                                    update.src_data->data_ptr);
 
-            for(Update& update : m_list_updates)
-            {
-                // upload the image
-                glTexSubImage2D(GL_TEXTURE_2D,
-                                0, // mipmap level
-                                update.src_offset.x,
-                                update.src_offset.y,
-                                update.src_data->width,
-                                update.src_data->height,
-                                m_gl_format,
-                                m_gl_datatype,
-                                update.src_data->data_ptr);
+                    KS_CHECK_GL_ERROR(m_log_prefix+"upload subimage");
+                }
 
-                KS_CHECK_GL_ERROR(m_log_prefix+"upload subimage");
+                if((update.options & Update::KeepSrcData) == 0) {
+                    delete update.src_data;
+                }
             }
 
             m_list_updates.clear();
@@ -243,7 +244,25 @@ namespace ks
 
         void Texture2D::UpdateTexture(Update update)
         {
-            m_list_updates.push_back(std::move(update));
+            bool const is_reupload =
+                    ((update.options & Update::ReUpload) == Update::ReUpload);
+
+            if(is_reupload || (update.src_data==nullptr))
+            {
+                // Erase all updates before this one
+                std::for_each(
+                            m_list_updates.begin(),
+                            m_list_updates.end(),
+                            [](Update& upd) {
+                                if((upd.options & Update::KeepSrcData) == 0) {
+                                    delete upd.src_data;
+                                }
+                            });
+
+                m_list_updates.clear();
+            }
+
+            m_list_updates.push_back(update);
         }
 
         u32 Texture2D::calcNumBytes() const

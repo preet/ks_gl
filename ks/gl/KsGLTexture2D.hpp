@@ -49,11 +49,13 @@ namespace ks
 
             struct Update
             {
-                bool dst_reupload;
+                static u8 const Defaults    = 0;
+                static u8 const ReUpload    = 1 << 0;
+                static u8 const KeepSrcData = 1 << 1;
 
-                bool src_null;
+                u8 options;
                 glm::u16vec2 src_offset;
-                std::shared_ptr<ImageData const> src_data;
+                ImageData const * src_data;
             };
 
             // Note: Textures should only be created after
