@@ -153,10 +153,6 @@ namespace ks
 
         void Texture2D::GLSync()
         {
-            if(m_list_updates.empty()) {
-                return;
-            }
-
             for(Update& update : m_list_updates)
             {
                 if((update.options & Update::ReUpload) == Update::ReUpload)
@@ -263,6 +259,11 @@ namespace ks
             }
 
             m_list_updates.push_back(update);
+        }
+
+        uint Texture2D::GetUpdateCount() const
+        {
+            return m_list_updates.size();
         }
 
         u32 Texture2D::calcNumBytes() const

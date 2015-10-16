@@ -79,6 +79,8 @@ namespace ks
 
             void UpdateTexture(Update update);
 
+            uint GetUpdateCount() const;
+
         private:
             // calculate the number of bytes in the texture
             // based on the dimensions, format and datatype
