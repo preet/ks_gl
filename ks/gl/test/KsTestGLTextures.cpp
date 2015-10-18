@@ -232,12 +232,15 @@ namespace {
 
                 m_texture =
                         make_unique<gl::Texture2D>(
-                            16,16,
-                            gl::Texture2D::Format::RGBA8,
-                            gl::Texture::Filter::Nearest,
-                            gl::Texture::Filter::Nearest,
-                            gl::Texture::Wrap::ClampToEdge,
-                            gl::Texture::Wrap::ClampToEdge);
+                            gl::Texture2D::Format::RGBA8);
+
+                m_texture->SetFilterModes(
+                            gl::Texture2D::Filter::Nearest,
+                            gl::Texture2D::Filter::Nearest);
+
+                m_texture->SetWrapModes(
+                            gl::Texture2D::Wrap::ClampToEdge,
+                            gl::Texture2D::Wrap::ClampToEdge);
 
                 m_texture->UpdateTexture(
                             gl::Texture2D::Update{

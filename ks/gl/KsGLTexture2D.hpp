@@ -61,13 +61,7 @@ namespace ks
             // Note: Textures should only be created after
             // the GL Implementation has been captured (this
             // should be true of all GL resources)
-            Texture2D(u16 width,
-                      u16 height,
-                      Format format,
-                      Filter filter_min = Filter::Linear,
-                      Filter filter_mag = Filter::Linear,
-                      Wrap wrap_s = Wrap::Repeat,
-                      Wrap wrap_t = Wrap::Repeat);
+            Texture2D(Format format);
 
             ~Texture2D();
 
@@ -77,20 +71,21 @@ namespace ks
 
             void GLSync();
 
+            uint GetUpdateCount() const;
+
             void UpdateTexture(Update update);
 
-            uint GetUpdateCount() const;
+            void SetFilterModes(Filter filter_min,Filter filter_mag);
+
+            void SetWrapModes(Wrap wrap_s,Wrap wrap_t);
 
         private:
             // calculate the number of bytes in the texture
             // based on the dimensions, format and datatype
             u32 calcNumBytes() const;
 
-            // Flag that indicates whether or not the
-            // the texture has been uploaded to OpenGL
-            // and the texture params have been set
-            u16 const m_width;
-            u16 const m_height;
+            u16 m_width;
+            u16 m_height;
             Format m_format;
 
             GLenum m_gl_format;
@@ -101,6 +96,8 @@ namespace ks
 
             Wrap m_wrap_s;
             Wrap m_wrap_t;
+
+            bool m_upd_params;
 
             std::vector<Update> m_list_updates;
         };

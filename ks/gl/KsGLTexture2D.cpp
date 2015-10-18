@@ -25,16 +25,15 @@ namespace ks
 {
     namespace gl
     {
-        Texture2D::Texture2D(u16 width,
-                             u16 height,
-                             Format format,
-                             Filter filter_min,
-                             Filter filter_mag,
-                             Wrap wrap_s,
-                             Wrap wrap_t) :
-            m_width(width),
-            m_height(height),
-            m_format(format)
+        Texture2D::Texture2D(Format format) :
+            m_width(16),
+            m_height(16),
+            m_format(format),
+            m_filter_min(Filter::Nearest),
+            m_filter_mag(Filter::Nearest),
+            m_wrap_s(Wrap::ClampToEdge),
+            m_wrap_t(Wrap::ClampToEdge),
+            m_upd_params(true)
         {
             // save params
             if(m_format == Format::RGB8) {
@@ -115,11 +114,6 @@ namespace ks
             // Texture parameters (wrap,filter) are owned/
             // saved to the texture object so we shouldn't
             // need to set them per frame.
-            m_filter_min = filter_min;
-            m_filter_mag = filter_mag;
-
-            m_wrap_s = wrap_s;
-            m_wrap_t = wrap_t;
         }
 
         Texture2D::~Texture2D()
@@ -157,7 +151,7 @@ namespace ks
             {
                 if((update.options & Update::ReUpload) == Update::ReUpload)
                 {
-                    if(update.src_data)
+                    if(update.src_data->data_ptr)
                     {
                         assert(m_width == update.src_data->width);
                         assert(m_height == update.src_data->height);
@@ -192,28 +186,6 @@ namespace ks
                     }
 
                     KS_CHECK_GL_ERROR(m_log_prefix+"upload texture");
-
-                    // set filter
-                    glTexParameteri(GL_TEXTURE_2D,
-                                    GL_TEXTURE_MIN_FILTER,
-                                    static_cast<GLint>(m_filter_min));
-
-                    glTexParameteri(GL_TEXTURE_2D,
-                                    GL_TEXTURE_MAG_FILTER,
-                                    static_cast<GLint>(m_filter_mag));
-
-                    KS_CHECK_GL_ERROR(m_log_prefix+"texture filter params");
-
-                    // set wrap
-                    glTexParameteri(GL_TEXTURE_2D,
-                                    GL_TEXTURE_WRAP_S,
-                                    static_cast<GLint>(m_wrap_s));
-
-                    glTexParameteri(GL_TEXTURE_2D,
-                                    GL_TEXTURE_WRAP_T,
-                                    static_cast<GLint>(m_wrap_t));
-
-                    KS_CHECK_GL_ERROR(m_log_prefix+"texture wrap params");
                 }
                 else
                 {
@@ -236,6 +208,34 @@ namespace ks
             }
 
             m_list_updates.clear();
+
+
+            if(m_upd_params)
+            {
+                // set filter
+                glTexParameteri(GL_TEXTURE_2D,
+                                GL_TEXTURE_MIN_FILTER,
+                                static_cast<GLint>(m_filter_min));
+
+                glTexParameteri(GL_TEXTURE_2D,
+                                GL_TEXTURE_MAG_FILTER,
+                                static_cast<GLint>(m_filter_mag));
+
+                KS_CHECK_GL_ERROR(m_log_prefix+"texture filter params");
+
+                // set wrap
+                glTexParameteri(GL_TEXTURE_2D,
+                                GL_TEXTURE_WRAP_S,
+                                static_cast<GLint>(m_wrap_s));
+
+                glTexParameteri(GL_TEXTURE_2D,
+                                GL_TEXTURE_WRAP_T,
+                                static_cast<GLint>(m_wrap_t));
+
+                KS_CHECK_GL_ERROR(m_log_prefix+"texture wrap params");
+
+                m_upd_params = false;
+            }
         }
 
         void Texture2D::UpdateTexture(Update update)
@@ -243,7 +243,7 @@ namespace ks
             bool const is_reupload =
                     ((update.options & Update::ReUpload) == Update::ReUpload);
 
-            if(is_reupload || (update.src_data==nullptr))
+            if(is_reupload)
             {
                 // Erase all updates before this one
                 std::for_each(
@@ -256,9 +256,27 @@ namespace ks
                             });
 
                 m_list_updates.clear();
+
+                // Resize the image
+                m_width = update.src_data->width;
+                m_height = update.src_data->height;
             }
 
             m_list_updates.push_back(update);
+        }
+
+        void Texture2D::SetFilterModes(Filter filter_min,Filter filter_mag)
+        {
+            m_filter_min = filter_min;
+            m_filter_mag = filter_mag;
+            m_upd_params = true;
+        }
+
+        void Texture2D::SetWrapModes(Wrap wrap_s,Wrap wrap_t)
+        {
+            m_wrap_s = wrap_s;
+            m_wrap_t = wrap_t;
+            m_upd_params = true;
         }
 
         uint Texture2D::GetUpdateCount() const
