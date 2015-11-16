@@ -328,6 +328,17 @@ int main(int argc, char* argv[])
                 window,
                 ks::ConnectionType::Direct);
 
+    // Create render timer
+    shared_ptr<CallbackTimer> win_timer =
+            make_object<CallbackTimer>(
+                render_evl,
+                milliseconds(15),
+                [window](){
+                    window->Render();
+                });
+
+    win_timer->Start();
+
     // Run!
     app->Run();
 
