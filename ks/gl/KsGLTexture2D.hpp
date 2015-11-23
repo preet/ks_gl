@@ -51,11 +51,10 @@ namespace ks
             {
                 static u8 const Defaults    = 0;
                 static u8 const ReUpload    = 1 << 0;
-                static u8 const KeepSrcData = 1 << 1;
 
                 u8 options;
                 glm::u16vec2 src_offset;
-                ImageData const * src_data;
+                shared_ptr<ImageData const> src_data;
             };
 
             // Note: Textures should only be created after
@@ -72,6 +71,8 @@ namespace ks
             void GLSync();
 
             uint GetUpdateCount() const;
+
+            bool GetParamsUpdated() const;
 
             void UpdateTexture(Update update);
 

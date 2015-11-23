@@ -201,10 +201,6 @@ namespace ks
 
                     KS_CHECK_GL_ERROR(m_log_prefix+"upload subimage");
                 }
-
-                if((update.options & Update::KeepSrcData) == 0) {
-                    delete update.src_data;
-                }
             }
 
             m_list_updates.clear();
@@ -246,15 +242,6 @@ namespace ks
             if(is_reupload)
             {
                 // Erase all updates before this one
-                std::for_each(
-                            m_list_updates.begin(),
-                            m_list_updates.end(),
-                            [](Update& upd) {
-                                if((upd.options & Update::KeepSrcData) == 0) {
-                                    delete upd.src_data;
-                                }
-                            });
-
                 m_list_updates.clear();
 
                 // Resize the image
@@ -282,6 +269,11 @@ namespace ks
         uint Texture2D::GetUpdateCount() const
         {
             return m_list_updates.size();
+        }
+
+        bool Texture2D::GetParamsUpdated() const
+        {
+            return m_upd_params;
         }
 
         u32 Texture2D::calcNumBytes() const

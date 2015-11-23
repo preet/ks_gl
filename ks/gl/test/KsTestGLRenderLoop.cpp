@@ -93,46 +93,12 @@ namespace {
     {
     public:
         Updater(shared_ptr<gui::Window> window,
-                shared_ptr<gui::Layer> layer,
                 shared_ptr<EventLoop> update_evl,
                 milliseconds timer_ms) :
             m_window(window),
-            m_layer(layer),
             m_upd_dt_ms(timer_ms),
             m_init(false)
         {
-            layer->signal_render.Connect(
-                        this,
-                        &Updater::onRender,
-                        window,
-                        ks::ConnectionType::Direct);
-
-            layer->signal_sync.Connect(
-                        this,
-                        &Updater::onSync,
-                        window,
-                        ks::ConnectionType::Direct);
-
-            if(update_evl == window->GetEventLoop())
-            {
-                signal_render.Connect(
-                            window,
-                            &gui::Window::Render,
-                            ks::ConnectionType::Direct);
-            }
-            else
-            {
-                signal_render.Connect(
-                            window,
-                            &gui::Window::Render,
-                            ks::ConnectionType::Queued);
-            }
-
-            signal_sync_layer.Connect(
-                        window,
-                        &gui::Window::SyncLayer,
-                        ks::ConnectionType::Blocking);
-
             m_timer =
                     make_object<CallbackTimer>(
                         update_evl,
@@ -156,8 +122,7 @@ namespace {
             // pretend to do some work
 //            std::this_thread::sleep_for(milliseconds(5));
 
-            signal_sync_layer.Emit(m_layer);
-            signal_render.Emit();
+            requestSyncAndRender();
 
             auto upd_end_time = std::chrono::high_resolution_clock::now();
 
@@ -189,6 +154,32 @@ namespace {
             }
         }
 
+        void requestSyncAndRender()
+        {
+            auto sync_callback = std::bind(&Updater::onSync,this);
+            auto render_callback = std::bind(&Updater::onRender,this);
+
+            ks::gui::Window* window_ptr = m_window.get();
+
+            auto sync_task =
+                    make_shared<ks::Task>(
+                        [=](){
+                            window_ptr->InvokeWithContext(sync_callback);
+                        });
+
+            m_window->GetEventLoop()->PostTask(sync_task);
+            sync_task->Wait();
+
+            auto render_task =
+                    make_shared<ks::Task>(
+                        [=](){
+                            window_ptr->InvokeWithContext(render_callback);
+                            window_ptr->SwapBuffers();
+                        });
+
+            m_window->GetEventLoop()->PostTask(render_task);
+        }
+
         void onSync()
         {}
 
@@ -210,6 +201,8 @@ namespace {
                             frag_shader);
 
                 m_shader->GLInit();
+
+                m_angle_rads = 0.0;
 
                 // done init
                 m_init = true;
@@ -280,12 +273,8 @@ namespace {
                            m_range.size_bytes);
         }
 
-        Signal<> signal_render;
-        Signal<shared_ptr<gui::Layer>> signal_sync_layer;
-
     private:
         shared_ptr<gui::Window> m_window;
-        shared_ptr<gui::Layer> m_layer;
         milliseconds m_upd_dt_ms;
         std::chrono::high_resolution_clock::time_point m_prev_upd_time;
         shared_ptr<CallbackTimer> m_timer;
@@ -344,13 +333,9 @@ int main(int argc, char* argv[])
 //                win_attribs,
 //                win_props);
 
-//    shared_ptr<gui::Layer> layer =
-//            window->CreateLayer(0);
-
 //    shared_ptr<Updater> updater =
 //            make_shared<Updater>(
 //                window,
-//                layer,
 //                app->GetEventLoop(),
 //                milliseconds(8));
 
@@ -370,13 +355,9 @@ int main(int argc, char* argv[])
 //                win_attribs,
 //                win_props);
 
-//    shared_ptr<gui::Layer> layer =
-//            window->CreateLayer(0);
-
 //    shared_ptr<Updater> updater =
 //            make_shared<Updater>(
 //                window,
-//                layer,
 //                render_evl,
 //                milliseconds(8));
 
@@ -396,13 +377,9 @@ int main(int argc, char* argv[])
 //                win_attribs,
 //                win_props);
 
-//    shared_ptr<gui::Layer> layer =
-//            window->CreateLayer(0);
-
 //    shared_ptr<Updater> updater =
 //            make_shared<Updater>(
 //                window,
-//                layer,
 //                render_evl,
 //                milliseconds(15));
 
@@ -423,13 +400,9 @@ int main(int argc, char* argv[])
                 win_attribs,
                 win_props);
 
-    shared_ptr<gui::Layer> layer =
-            window->CreateLayer(0);
-
     shared_ptr<Updater> updater =
             make_shared<Updater>(
                 window,
-                layer,
                 app->GetEventLoop(),
                 milliseconds(15));
 

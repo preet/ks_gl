@@ -610,26 +610,21 @@ int main(int argc, char* argv[])
                 win_attribs,
                 win_props);
 
-    shared_ptr<gui::Layer> layer =
-            window->CreateLayer(0);
-
     shared_ptr<RenderLayer> render_layer =
             make_shared<RenderLayer>();
 
-    layer->signal_render.Connect(
-                render_layer.get(),
-                &RenderLayer::Render,
-                window,
-                ks::ConnectionType::Direct);
-
-
     // Create render timer
+    auto render_callback =
+            std::bind(&RenderLayer::Render,
+                      render_layer.get());
+
     shared_ptr<CallbackTimer> win_timer =
             make_object<CallbackTimer>(
                 render_evl,
                 milliseconds(15),
-                [window](){
-                    window->Render();
+                [window,render_callback](){
+                    window->InvokeWithContext(render_callback);
+                    window->SwapBuffers();
                 });
 
     win_timer->Start();
