@@ -1,10 +1,74 @@
-#include <ks/gl/KsGLBuffer.hpp> 
+#include <ks/gl/KsGLBuffer.hpp>
 #include <algorithm>
 
 namespace ks
 {
     namespace gl
     {
+        // ============================================================= //
+
+        Buffer::Update::Update(u8 options,
+                               uint dst_byte_offset,
+                               uint src_byte_offset,
+                               size_t src_sz_bytes) :
+            options(options),
+            dst_byte_offset(dst_byte_offset),
+            src_byte_offset(src_byte_offset),
+            src_sz_bytes(src_sz_bytes)
+        {}
+
+        Buffer::Update::~Update() {}
+
+        void const * Buffer::Update::GetData()
+        {
+            return nullptr;
+        }
+
+        // ============================================================= //
+
+        Buffer::UpdateKeepData::UpdateKeepData(u8 options,
+                                               uint dst_byte_offset,
+                                               uint src_byte_offset,
+                                               size_t src_sz_bytes,
+                                               std::vector<u8>* data) :
+            Buffer::Update(options,
+                           dst_byte_offset,
+                           src_byte_offset,
+                           src_sz_bytes),
+            data(data)
+        {}
+
+        Buffer::UpdateKeepData::~UpdateKeepData() {}
+
+        void const * Buffer::UpdateKeepData::GetData()
+        {
+            return &((*data)[0]);
+        }
+
+        // ============================================================= //
+
+        Buffer::UpdateFreeData::UpdateFreeData(u8 options,
+                                               uint dst_byte_offset,
+                                               uint src_byte_offset,
+                                               size_t src_sz_bytes,
+                                               std::vector<u8>* data) :
+            Buffer::Update(options,
+                           dst_byte_offset,
+                           src_byte_offset,
+                           src_sz_bytes),
+            data(data)
+        {}
+
+        Buffer::UpdateFreeData::~UpdateFreeData()
+        {
+            delete data;
+        }
+
+        void const * Buffer::UpdateFreeData::GetData()
+        {
+            return &((*data)[0]);
+        }
+
         // ============================================================= //
 
         Buffer::Buffer(Target target, Usage usage) :
@@ -34,7 +98,7 @@ namespace ks
             return m_lk_buffer_size;
         }
 
-        std::vector<Buffer::Update> const & Buffer::GetUpdates() const
+        std::vector<unique_ptr<Buffer::Update>> const & Buffer::GetUpdates() const
         {
             return m_list_updates;
         }
@@ -89,74 +153,44 @@ namespace ks
 
         void Buffer::GLSync()
         {
-            if(m_list_updates.empty()) {
-                return;
-            }
-
-            if(m_opt_retain_buffer)
+            for(auto& upd_uptr : m_list_updates)
             {
 
-            }
-            else
-            {
-                for(Update &update : m_list_updates)
+                Update& update = *upd_uptr;
+
+                if((update.options & Update::ReUpload) == Update::ReUpload)
                 {
-                    if((update.options & Update::ReUpload) == Update::ReUpload)
-                    {
-                        if(update.src_data) {
-                            std::vector<u8> const &src_data = *(update.src_data);
-                            glBufferData(static_cast<GLenum>(m_target),
-                                         update.src_sz_bytes,
-                                         &(src_data[update.src_byte_offset]),
-                                         static_cast<GLenum>(m_usage));
-                        }
-                        else {
-                            glBufferData(static_cast<GLenum>(m_target),
-                                         update.src_sz_bytes,
-                                         nullptr,
-                                         static_cast<GLenum>(m_usage));
-                        }
-                        KS_CHECK_GL_ERROR(m_log_prefix+"upload buffer");
-                        m_lk_buffer_size = update.src_sz_bytes;
-                    }
-                    else
-                    {
-                        std::vector<u8> const &src_data = *(update.src_data);
+                    glBufferData(static_cast<GLenum>(m_target),
+                                 update.src_sz_bytes,
+                                 update.GetData(),
+                                 static_cast<GLenum>(m_usage));
 
-                        glBufferSubData(static_cast<GLenum>(m_target),
-                                        update.dst_byte_offset,
-                                        update.src_sz_bytes,
-                                        &(src_data[update.src_byte_offset]));
 
-                        KS_CHECK_GL_ERROR(m_log_prefix+"upload buffer subdata");
-                    }
-
-                    if((update.options & Update::KeepSrcData) == 0) {
-                        delete update.src_data;
-                    }
+                    KS_CHECK_GL_ERROR(m_log_prefix+"upload buffer");
+                    m_lk_buffer_size = update.src_sz_bytes;
                 }
+                else
+                {
+                    glBufferSubData(static_cast<GLenum>(m_target),
+                                    update.dst_byte_offset,
+                                    update.src_sz_bytes,
+                                    update.GetData());
 
-                m_list_updates.clear();
+                    KS_CHECK_GL_ERROR(m_log_prefix+"upload buffer subdata");
+                }
             }
+
+            m_list_updates.clear();
         }
 
-        void Buffer::UpdateBuffer(Update const &update)
+        void Buffer::UpdateBuffer(unique_ptr<Update> update)
         {
             bool const is_reupload =
-                    ((update.options & Update::ReUpload) == Update::ReUpload);
+                    ((update->options & Update::ReUpload) == Update::ReUpload);
 
-            if(is_reupload || (update.src_data==nullptr))
+            if(is_reupload || (update->GetData()==nullptr))
             {
                 // Erase all updates before this one
-                std::for_each(
-                            m_list_updates.begin(),
-                            m_list_updates.end(),
-                            [](Update& upd) {
-                                if((upd.options & Update::KeepSrcData) == 0) {
-                                    delete upd.src_data;
-                                }
-                            });
-
                 m_list_updates.clear();
             }
 //            else
@@ -166,7 +200,7 @@ namespace ks
 //                // merging overlapping ranges
 //            }
 
-            m_list_updates.push_back(update);
+            m_list_updates.push_back(std::move(update));
         }
 
         // ============================================================= //

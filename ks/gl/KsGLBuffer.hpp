@@ -21,6 +21,7 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#include <functional>
 
 // ks
 #include <ks/gl/KsGLResource.hpp>
@@ -56,15 +57,63 @@ namespace ks
 
             struct Update
             {
-                static u8 const Defaults    = 0;
-                static u8 const ReUpload    = 1 << 0;
-                static u8 const KeepSrcData = 1 << 1;
+                enum Options : u8
+                {
+                    Defaults = 0,
+                    ReUpload = 1 << 0
+                };
 
                 u8 options;
                 uint dst_byte_offset;
                 uint src_byte_offset;
                 size_t src_sz_bytes;
-                std::vector<u8>* src_data;
+
+                Update(u8 options,
+                       uint dst_byte_offset,
+                       uint src_byte_offset,
+                       size_t src_sz_bytes);
+
+                virtual ~Update();
+
+                // * Default implementation returns nullptr
+                // * GetData() may be called multiple times,
+                //   the lifetime of the underlying data should
+                //   be valid for the lifetime of the Update object
+                virtual void const * GetData();
+            };
+
+            // Example/Common Update implementations
+
+            // Keep @data even after the Update object is destroyed
+            struct UpdateKeepData : Update
+            {
+                UpdateKeepData(u8 options,
+                               uint dst_byte_offset,
+                               uint src_byte_offset,
+                               size_t src_sz_bytes,
+                               std::vector<u8>* data);
+
+                ~UpdateKeepData();
+
+                void const * GetData() override;
+
+                std::vector<u8>* data;
+            };
+
+            // Delete @data when the Update object is destroyed
+            struct UpdateFreeData : Update
+            {
+                UpdateFreeData(u8 options,
+                               uint dst_byte_offset,
+                               uint src_byte_offset,
+                               size_t src_sz_bytes,
+                               std::vector<u8>* data);
+
+                ~UpdateFreeData();
+
+                void const * GetData() override;
+
+                std::vector<u8>* data;
             };
 
 
@@ -78,7 +127,7 @@ namespace ks
 
             // * Returns the current list of updates, used
             //   primarily for debugging
-            std::vector<Update> const & GetUpdates() const;
+            std::vector<unique_ptr<Update>> const & GetUpdates() const;
 
             bool GLInit();
             virtual bool GLBind();
@@ -93,7 +142,7 @@ namespace ks
 
             // * May be called asynchronously with respect to the
             //   current rendering thread, but is not thread safe
-            void UpdateBuffer(Update const &update);
+            void UpdateBuffer(unique_ptr<Update> update);
 
             // TODO desc
             template<typename T>
@@ -121,13 +170,12 @@ namespace ks
         protected:
             Target m_target;
             Usage m_usage;
-            bool m_opt_retain_buffer{false}; // TODO
 
             GLuint m_buffer_handle{0};
             uint m_lk_buffer_size{0};
             std::vector<u8> m_buffer;
 
-            std::vector<Update> m_list_updates;
+            std::vector<unique_ptr<Update>> m_list_updates;
 
             std::string m_log_prefix = "Buffer: ";
         };

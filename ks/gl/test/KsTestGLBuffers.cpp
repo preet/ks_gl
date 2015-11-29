@@ -343,12 +343,12 @@ namespace {
                             gl::Buffer::Usage::Static);
 
                 m_vx_buff_aos->UpdateBuffer(
-                            gl::Buffer::Update{
+                            make_unique<gl::Buffer::UpdateFreeData>(
                                 gl::Buffer::Update::ReUpload,
                                 0,0,
                                 list_vx_aos_size,
-                                list_vx_aos.release()
-                            });
+                                list_vx_aos.release())
+                            );
 
                 m_vx_buff_aos->GLInit();
                 m_vx_buff_aos->GLBind();
@@ -382,12 +382,11 @@ namespace {
                             gl::Buffer::Usage::Static);
 
                 m_vx_buff_soa0->UpdateBuffer(
-                            gl::Buffer::Update{
+                            make_unique<gl::Buffer::UpdateFreeData>(
                                 gl::Buffer::Update::ReUpload,
                                 0,0,
                                 list_vx_soa0_size,
-                                list_vx_soa0.release()
-                            });
+                                list_vx_soa0.release()));
 
                 m_vx_buff_soa0->GLInit();
                 m_vx_buff_soa0->GLBind();
@@ -401,12 +400,12 @@ namespace {
                             gl::Buffer::Usage::Static);
 
                 m_vx_buff_soa1->UpdateBuffer(
-                            gl::Buffer::Update{
+                            make_unique<gl::Buffer::UpdateFreeData>(
                                 gl::Buffer::Update::ReUpload,
                                 0,0,
                                 list_vx_soa1_size,
-                                list_vx_soa1.release()
-                            });
+                                list_vx_soa1.release())
+                            );
 
                 m_vx_buff_soa1->GLInit();
                 m_vx_buff_soa1->GLBind();
@@ -420,12 +419,12 @@ namespace {
                             gl::Buffer::Usage::Static);
 
                 m_vx_buff_soa2->UpdateBuffer(
-                            gl::Buffer::Update{
+                            make_unique<gl::Buffer::UpdateFreeData>(
                                 gl::Buffer::Update::ReUpload,
                                 0,0,
                                 list_vx_soa2_size,
-                                list_vx_soa2.release()
-                            });
+                                list_vx_soa2.release())
+                            );
 
                 m_vx_buff_soa2->GLInit();
                 m_vx_buff_soa2->GLBind();
@@ -439,12 +438,12 @@ namespace {
                             gl::Buffer::Usage::Static);
 
                 m_ix_buff->UpdateBuffer(
-                            gl::Buffer::Update{
+                            make_unique<gl::Buffer::UpdateFreeData>(
                                 gl::Buffer::Update::ReUpload,
                                 0,0,
                                 list_ix_size,
-                                list_ix.release()
-                            });
+                                list_ix.release())
+                            );
 
                 m_ix_buff->GLInit();
                 m_ix_buff->GLBind();
@@ -637,5 +636,6 @@ int main(int argc, char* argv[])
 
     return 0;
 }
+
 
 

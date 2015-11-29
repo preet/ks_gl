@@ -245,12 +245,12 @@ namespace {
             auto list_vx_sz = list_vx->size();
 
             m_vx_buff->UpdateBuffer(
-                        gl::Buffer::Update{
+                        make_unique<gl::Buffer::UpdateFreeData>(
                             gl::Buffer::Update::ReUpload,
                             0,0,
                             list_vx_sz,
                             list_vx.release()
-                        });
+                        ));
 
             m_vx_buff->GLInit();
             m_vx_buff->GLBind();
