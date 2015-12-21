@@ -49,6 +49,9 @@ namespace ks
 
             void SetActiveTexUnitAndBind(GLint unit,GLint handle,GLenum target,u64 uid);
 
+            // scissor
+            void SetScissorTest(GLboolean enabled);
+
             // blending
             void SetBlend(GLboolean enabled);
             void SetBlendFunction(GLenum srcRGB,GLenum dstRGB,GLenum srcAlpha,GLenum dstAlpha);
@@ -170,6 +173,11 @@ namespace ks
                         valid(false) {}
                 };
                 std::vector<TextureBindingState> list_texture_bindstates;
+
+                // ============================================================= //
+
+                // (scissor)
+                State<GLboolean> gl_scissor_test;
 
                 // ============================================================= //
 

@@ -62,6 +62,9 @@ namespace ks
             m_data.list_texture_bindstates.resize(
                         Implementation::GetMaxTextureImageUnits());
 
+            // stencil
+            assignBooleanFromGL(m_data.gl_scissor_test,GL_SCISSOR_TEST);
+
             // blend
             assignBooleanFromGL(m_data.gl_blend,GL_BLEND);
             assignIntegerFromGL(m_data.gl_blend_src_rgb,GL_BLEND_SRC_RGB);
@@ -215,6 +218,23 @@ namespace ks
                 m_data.list_texture_bindstates[unit].uid = uid;
                 m_data.list_texture_bindstates[unit].valid = true;
             }
+        }
+
+        void StateSet::SetScissorTest(GLboolean enabled)
+        {
+            if(compareState(m_data.gl_scissor_test,enabled)) {
+                return;
+            }
+
+            if(enabled == GL_TRUE) {
+                glEnable(GL_SCISSOR_TEST);
+            }
+            else {
+                glDisable(GL_SCISSOR_TEST);
+            }
+            KS_CHECK_GL_ERROR(m_log_prefix+"set scissor test");
+
+            setState(m_data.gl_scissor_test,enabled);
         }
 
         void StateSet::SetBlend(GLboolean enabled)

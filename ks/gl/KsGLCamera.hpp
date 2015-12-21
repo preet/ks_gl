@@ -37,7 +37,7 @@ namespace ks
             using vec3 = glm::tvec3<FP,glm::highp>;
             using mat4 = glm::tmat4x4<FP,glm::highp>;
 
-            enum class Mode : u8
+            enum class Mode
             {
                 Orthographic,
                 Perspective
