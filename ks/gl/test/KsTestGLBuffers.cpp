@@ -620,7 +620,7 @@ int main(int argc, char* argv[])
     shared_ptr<CallbackTimer> win_timer =
             make_object<CallbackTimer>(
                 render_evl,
-                milliseconds(15),
+                Milliseconds(15),
                 [window,render_callback](){
                     window->InvokeWithContext(render_callback);
                     window->SwapBuffers();

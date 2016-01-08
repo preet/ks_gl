@@ -94,7 +94,7 @@ namespace {
     public:
         Updater(shared_ptr<gui::Window> window,
                 shared_ptr<EventLoop> update_evl,
-                milliseconds timer_ms) :
+                Milliseconds timer_ms) :
             m_window(window),
             m_upd_dt_ms(timer_ms),
             m_init(false)
@@ -120,7 +120,7 @@ namespace {
             auto upd_start_time = curr_upd_time;
 
             // pretend to do some work
-//            std::this_thread::sleep_for(milliseconds(5));
+//            std::this_thread::sleep_for(Milliseconds(5));
 
             requestSyncAndRender();
 
@@ -137,7 +137,7 @@ namespace {
             if(upd_sched_delay > 0)
             {
                 // Schedule delayed
-                milliseconds delay_ms(
+                Milliseconds delay_ms(
                             static_cast<u64>(ceil(upd_sched_delay)));
 
                 m_timer->SetInterval(delay_ms);
@@ -275,7 +275,7 @@ namespace {
 
     private:
         shared_ptr<gui::Window> m_window;
-        milliseconds m_upd_dt_ms;
+        Milliseconds m_upd_dt_ms;
         std::chrono::high_resolution_clock::time_point m_prev_upd_time;
         shared_ptr<CallbackTimer> m_timer;
 
@@ -337,7 +337,7 @@ int main(int argc, char* argv[])
 //            make_shared<Updater>(
 //                window,
 //                app->GetEventLoop(),
-//                milliseconds(8));
+//                Milliseconds(8));
 
 
 
@@ -359,7 +359,7 @@ int main(int argc, char* argv[])
 //            make_shared<Updater>(
 //                window,
 //                render_evl,
-//                milliseconds(8));
+//                Milliseconds(8));
 
 
 
@@ -381,7 +381,7 @@ int main(int argc, char* argv[])
 //            make_shared<Updater>(
 //                window,
 //                render_evl,
-//                milliseconds(15));
+//                Milliseconds(15));
 
 
 
@@ -404,7 +404,7 @@ int main(int argc, char* argv[])
             make_shared<Updater>(
                 window,
                 app->GetEventLoop(),
-                milliseconds(15));
+                Milliseconds(15));
 
 
     (void)updater;
