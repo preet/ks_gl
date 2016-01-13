@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2015 Preet Desai (preet.desai@gmail.com)
+   Copyright (C) 2015-2016 Preet Desai (preet.desai@gmail.com)
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
@@ -14,14 +14,12 @@
    limitations under the License.
 */
 
-#include <cassert>
 #include <glm/glm.hpp>
 #include <ks/gl/KsGLImplementation.hpp>
 #include <ks/gl/KsGLStateSet.hpp>
 #include <ks/gl/KsGLCommands.hpp>
-#include <ks/gui/KsGuiWindow.hpp>
-#include <ks/gui/KsGuiApplication.hpp>
-#include <ks/platform/KsPlatformMain.hpp>
+
+#include <ks/gl/test/KsTestGLScene.hpp>
 
 // NOTE: "SOA" stands for structure of arrays, and "AOS" stands for
 // arrays of structures, referring to vertex attribute layout
@@ -290,20 +288,17 @@ namespace {
 
     // ============================================================= //
 
-    class RenderLayer
+    class Renderable
     {
     public:
-        RenderLayer() :
+        Renderable() :
             m_init(false)
         {}
 
-        ~RenderLayer()
+        ~Renderable()
         {}
 
-        void Sync()
-        {}
-
-        void Render()
+        void OnRender()
         {
             if(!m_init)
             {
@@ -581,7 +576,6 @@ namespace {
     // ============================================================= //
 }
 
-
 int main(int argc, char* argv[])
 {
     (void)argc;
@@ -603,30 +597,28 @@ int main(int argc, char* argv[])
     gui::Window::Attributes win_attribs;
     gui::Window::Properties win_props;
 
+    // Vsync must be enabled
+    win_props.swap_interval = 1;
+
     shared_ptr<gui::Window> window =
             app->CreateWindow(
                 render_evl,
                 win_attribs,
                 win_props);
 
-    shared_ptr<RenderLayer> render_layer =
-            make_shared<RenderLayer>();
+    shared_ptr<Renderable> renderable =
+            make_shared<Renderable>();
 
-    // Create render timer
-    auto render_callback =
-            std::bind(&RenderLayer::Render,
-                      render_layer.get());
+    std::function<void()> render_callback =
+            [renderable](){
+                renderable->OnRender();
+            };
 
-    shared_ptr<CallbackTimer> win_timer =
-            make_object<CallbackTimer>(
-                render_evl,
-                Milliseconds(15),
-                [window,render_callback](){
-                    window->InvokeWithContext(render_callback);
-                    window->SwapBuffers();
-                });
-
-    win_timer->Start();
+    shared_ptr<Scene> scene =
+            ks::make_object<Scene>(
+                app,
+                window,
+                render_callback);
 
     // Run!
     app->Run();
