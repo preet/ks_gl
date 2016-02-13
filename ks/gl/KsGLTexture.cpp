@@ -53,9 +53,6 @@ namespace ks
         bool Texture::GLInit()
         {
             if(!(m_texture_handle == 0)) {
-                LOG.Error() << m_log_prefix
-                            << "already have valid handle: "
-                            << m_texture_handle;
                 return false;
             }
 
